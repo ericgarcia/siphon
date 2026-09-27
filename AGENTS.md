@@ -35,8 +35,15 @@ It began as a fork of `spotify/portal-ai-plugins`; see `NOTICE`.
   Flash models, so this name will move again: grep for the current one and change
   every hit in one commit. `transport-evals.sh` asserts the literal, so the suite
   fails if the default and its documentation drift apart — that is deliberate.
-- Keep `doctor` read-only, and keep it off `generateContent`: diagnosis must not
-  spend tokens.
+- Keep `doctor` read-only: it reports and recommends, and never installs, writes
+  config, or sets variables. It may spend the **one** minimal `generateContent`
+  probe in §5, capped at a single output token with thinking off, about three
+  tokens. That probe is not optional. A metadata call cannot tell a live model
+  from a retired one: measured 2026-09-23, `gemini-2.5-flash` answered
+  `GET /models/<id>` with 200 while `generateContent` returned 404, so `doctor`
+  reported "Model: ready" throughout an outage that broke every delegation. A
+  check that cannot fail when the thing it checks is broken is worse than no
+  check, because it is believed.
 - Keep each skill canonical in `plugins/siphon/skills/`.
 - Do not publish the bundled skills as standalone packages.
 - Do not add release automation unless a tagged release or another distribution

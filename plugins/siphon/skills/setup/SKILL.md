@@ -59,20 +59,25 @@ Do not accept the key in conversation.
 
 ## 5. Verify connectivity and the model
 
-One metadata call, no generation cost:
+One minimal generation. A metadata call would not do: a retired model still answers
+metadata with `200` and refuses to generate. Capped at one output token with thinking off,
+so this costs about three tokens.
 
 ```bash
 key="${GEMINI_API_KEY:-$(head -n1 "$keyfile" 2>/dev/null)}"
 curl -sS -o /dev/null -w '%{http_code}\n' \
   -H "x-goog-api-key: $key" \
-  "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-3.8-flash}"
+  -H 'Content-Type: application/json' -X POST \
+  -d '{"contents":[{"parts":[{"text":"x"}]}],"generationConfig":{"maxOutputTokens":1,"thinkingConfig":{"thinkingBudget":0}}}' \
+  "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-3.8-flash}:generateContent"
 ```
 
-- `200` — key valid, model reachable.
+- `200` — key valid, model reachable **and able to answer**.
 - `400` — **an invalid key returns 400, not 401.** Treat it as a bad key.
 - `403` — key restricted, the Generative Language API is not enabled, or the key header
   went out empty; re-check step 4 before replacing the key.
-- `404` — wrong model id. List what is actually available:
+- `404` — wrong model id, **or the model was retired**; the body names the replacement.
+  List what is actually available:
 
   ```bash
   curl -sS -H "x-goog-api-key: $key" \
@@ -80,7 +85,11 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
   | jq -r '.models[] | select(.supportedGenerationMethods[]? == "generateContent") | .name'
   ```
 
-- `429` — quota reached; the key works. Note it and continue.
+- `429` — quota reached; the key works. `error.details[].quotaId` names which limit: a
+  per-minute token bucket that clears in seconds, or a per-day request cap that does not.
+  `retryDelay` does not reliably distinguish them, and the numbers in the error did not match
+  observed behaviour, so send the user to <https://aistudio.google.com/rate-limit> for their
+  real limits rather than quoting the error's figure. Note which window it was, and continue.
 
 ## 6. Persist the configuration
 
