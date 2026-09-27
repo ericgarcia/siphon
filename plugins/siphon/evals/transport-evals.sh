@@ -19,11 +19,14 @@ CAPTURED_ARGS="$WORKDIR/captured-args"
 # A key must exist for siphon_api_key to succeed, but it must never reach argv.
 export GEMINI_API_KEY="test-key-do-not-use"
 
-# The default-model check reads the library's own default, so an inherited
-# SIPHON_MODEL silently retargets it: anyone who had pinned a model in their
-# host settings saw "default-model-used" fail against their own override rather
-# than against the shipped default. The per-mode overrides are set per case.
-unset SIPHON_MODEL SIPHON_BULK_READER_MODEL SIPHON_CODE_WRITER_MODEL
+# These checks read the library's own defaults, so inherited SIPHON_*
+# configuration retargets them: anyone who had pinned a model in their host
+# settings saw "default-model-used" fail against their own override rather than
+# against the shipped default. run.sh clears these too, but this suite also runs
+# standalone. Per-case overrides are set per case, after this point.
+for siphon_var in $(env | sed -n 's/^\(SIPHON_[A-Za-z0-9_]*\)=.*/\1/p'); do
+  unset "$siphon_var"
+done
 
 # shellcheck source=../scripts/lib/gemini.sh
 . "$PLUGIN_DIR/scripts/lib/gemini.sh"
