@@ -57,6 +57,13 @@ It began as a fork of `spotify/portal-ai-plugins`; see `NOTICE`.
   (verified on codex-cli 0.154.0), so the gate is real only on Claude Code. Exit 2 is the one contract every host documents as blocking, so
   enforcement survives a host rejecting a JSON shape it does not know. Any change
   to hook output must stay covered by the eval suite.
+- The gate **fails open** when Gemini cannot serve the delegation it redirects to,
+  because a block that points at a broken backend costs the read and saves no
+  context. `hook_block` probes `generateContent` (never metadata, which answers
+  200 for a retired model) with a per-model cached verdict, and
+  `SIPHON_HOOK_FAIL_OPEN=0` restores absolute blocking. `evals/run.sh` sets that,
+  which is what keeps the suite free of network and keys — any new eval runner
+  must do the same.
 - Scripts resolve their own location from `$0`; skills resolve the plugin root
   through the four-tier `SIPHON_ROOT → CLAUDE_PLUGIN_ROOT → CURSOR_PLUGIN_ROOT →
   PLUGIN_ROOT` chain. **Never hardcode `${CLAUDE_PLUGIN_ROOT}` in skill prose** —

@@ -28,6 +28,12 @@ for arg in "$@"; do
   esac
 done
 
+# The gate fails open when the Gemini backend cannot serve the delegation it
+# redirects to (see hooks/lib/hook-io.sh). These evals test routing decisions,
+# not connectivity, and this runner promises no API key and no network, so pin
+# the gate closed for the suite.
+export SIPHON_HOOK_FAIL_OPEN=0
+
 generate_fixture() {
   local path="$1" lines="$2"
   if [ "$lines" -eq 0 ]; then
