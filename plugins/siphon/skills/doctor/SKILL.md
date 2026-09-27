@@ -40,21 +40,43 @@ out specifically and recommend `chmod +x`.
 
 ## 4. API key
 
-Report set or unset, and character length. **Never the value.**
+`scripts/lib/gemini.sh` resolves the key from two places, in order: `$GEMINI_API_KEY`, then
+the file at `$GEMINI_API_KEY_FILE` (default `~/.config/siphon/gemini.key`). **Check both.**
+An install whose key lives only in the file is healthy; reporting it unset sends the user to
+replace a key that already works, and the probe in §5 then goes out with an empty header and
+comes back `403`, which reads as a second, unrelated failure.
+
+```bash
+keyfile="${GEMINI_API_KEY_FILE:-$HOME/.config/siphon/gemini.key}"
+if [ -n "${GEMINI_API_KEY:-}" ]; then
+  echo "key: GEMINI_API_KEY (${#GEMINI_API_KEY} chars)"
+elif [ -r "$keyfile" ]; then
+  k=$(head -n1 "$keyfile" | tr -d '[:space:]'); echo "key: $keyfile (${#k} chars)"
+else
+  echo "key: NOT SET - neither GEMINI_API_KEY nor $keyfile"
+fi
+```
+
+Report which source supplied it, and the length. **Never the value.**
 
 ## 5. Connectivity and model
 
 The metadata probe only — no generation:
 
+Resolve the key as in §4, then probe:
+
 ```bash
+keyfile="${GEMINI_API_KEY_FILE:-$HOME/.config/siphon/gemini.key}"
+key="${GEMINI_API_KEY:-$(head -n1 "$keyfile" 2>/dev/null)}"
 curl -sS -o /dev/null -w '%{http_code}\n' \
-  -H "x-goog-api-key: $GEMINI_API_KEY" \
+  -H "x-goog-api-key: $key" \
   "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-3.8-flash}"
 ```
 
 Interpret the status: `200` ready; **`400` means the key was rejected — an invalid key
-returns 400, not 401**; `403` restricted key or API not enabled; `404` wrong model id,
-in which case list the models that support `generateContent`; `429` quota, key valid.
+returns 400, not 401**; `403` restricted key, API not enabled, **or an empty key header, so
+re-check §4 before blaming the key**; `404` wrong model id, in which case list the models
+that support `generateContent`; `429` quota, key valid.
 
 ## 6. Hook enforcement
 

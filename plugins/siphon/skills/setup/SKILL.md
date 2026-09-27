@@ -43,9 +43,15 @@ A resolved-but-not-executable root is the most common post-install failure — a
 
 ## 4. Check the key is present, without printing it
 
+`gemini.sh` accepts the key from `$GEMINI_API_KEY` or from the file at
+`$GEMINI_API_KEY_FILE`, so a key already in the file needs nothing more. Check both, or a
+working file-based install is told to set up a key it already has.
+
 ```bash
-[ -n "${GEMINI_API_KEY:-}" ] && echo "GEMINI_API_KEY: set (${#GEMINI_API_KEY} chars)" \
-                             || echo "GEMINI_API_KEY: NOT SET"
+keyfile="${GEMINI_API_KEY_FILE:-$HOME/.config/siphon/gemini.key}"
+if [ -n "${GEMINI_API_KEY:-}" ]; then echo "key: GEMINI_API_KEY (${#GEMINI_API_KEY} chars)"
+elif [ -r "$keyfile" ]; then k=$(head -n1 "$keyfile" | tr -d '[:space:]'); echo "key: $keyfile (${#k} chars)"
+else echo "key: NOT SET"; fi
 ```
 
 If unset, point the user to https://aistudio.google.com/apikey and to step 6.
@@ -56,18 +62,20 @@ Do not accept the key in conversation.
 One metadata call, no generation cost:
 
 ```bash
+key="${GEMINI_API_KEY:-$(head -n1 "$keyfile" 2>/dev/null)}"
 curl -sS -o /dev/null -w '%{http_code}\n' \
-  -H "x-goog-api-key: $GEMINI_API_KEY" \
+  -H "x-goog-api-key: $key" \
   "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-3.8-flash}"
 ```
 
 - `200` — key valid, model reachable.
 - `400` — **an invalid key returns 400, not 401.** Treat it as a bad key.
-- `403` — key restricted, or the Generative Language API is not enabled.
+- `403` — key restricted, the Generative Language API is not enabled, or the key header
+  went out empty; re-check step 4 before replacing the key.
 - `404` — wrong model id. List what is actually available:
 
   ```bash
-  curl -sS -H "x-goog-api-key: $GEMINI_API_KEY" \
+  curl -sS -H "x-goog-api-key: $key" \
     "https://generativelanguage.googleapis.com/v1beta/models" \
   | jq -r '.models[] | select(.supportedGenerationMethods[]? == "generateContent") | .name'
   ```
