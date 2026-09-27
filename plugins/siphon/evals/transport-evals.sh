@@ -110,6 +110,32 @@ keyfile="$WORKDIR/key"; printf 'file-key\n' > "$keyfile"
 actual=$( unset GEMINI_API_KEY; GEMINI_API_KEY_FILE="$keyfile" bash -c '. "$1"; siphon_api_key' _ "$PLUGIN_DIR/scripts/lib/gemini.sh" )
 check "key-from-file" "file-key" "$actual" "a key file is read and its newline trimmed"
 
+# ── The real curl invocation ──
+#
+# Everything above stubs siphon_transport, so nothing exercises the actual curl
+# assembly. A comment line placed inside that \-continued command once ended it
+# early: curl ran with no URL and the URL line was executed as a command, so
+# every delegation failed while bash -n and all 86 checks still passed.
+#
+# So stub `curl` instead of the seam and run the real siphon_transport, asserting
+# the URL reaches argv. No key and no network, unlike a live smoke test, which
+# would be skipped exactly when someone has no key configured.
+CAPTURED_CURL_ARGS="$WORKDIR/captured-curl-args"
+(
+  # Re-source to get the real siphon_transport back over the stub above.
+  . "$PLUGIN_DIR/scripts/lib/gemini.sh"
+  curl() { printf '%s\n' "$@" > "$CAPTURED_CURL_ARGS"; printf '200'; }
+  printf '{"contents":[]}' > "$WORKDIR/real-body.json"
+  siphon_transport "$WORKDIR/real-body.json" "$WORKDIR/real-out.json" "probe-model" >/dev/null 2>&1
+)
+check "transport-url-reaches-curl" "1" \
+  "$(grep -cx -- "$SIPHON_API_BASE/models/probe-model:generateContent" "$CAPTURED_CURL_ARGS" 2>/dev/null)" \
+  "the endpoint must arrive as a curl argument, not be lost to a broken continuation"
+
+check "transport-url-is-last-arg" "$SIPHON_API_BASE/models/probe-model:generateContent" \
+  "$(tail -n1 "$CAPTURED_CURL_ARGS" 2>/dev/null)" \
+  "the URL is the final argument, so a truncated command is visible here"
+
 # ── Model resolution ──
 
 ( SIPHON_MODEL=gemini-2.5-flash-lite siphon_invoke bulk-reader "$message_file" >/dev/null 2>&1 )
