@@ -58,7 +58,7 @@ One metadata call, no generation cost:
 ```bash
 curl -sS -o /dev/null -w '%{http_code}\n' \
   -H "x-goog-api-key: $GEMINI_API_KEY" \
-  "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-2.5-flash}"
+  "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-3.8-flash}"
 ```
 
 - `200` — key valid, model reachable.

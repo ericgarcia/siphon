@@ -175,7 +175,7 @@ See the table in the [root README](../../README.md).
 - **Request size**: capped by `SIPHON_MAX_REQUEST_BYTES` (2 MB) as a cost
   circuit-breaker, not an OS limit. The model accepts about 1M tokens.
 - **Benchmarks**: the numbers in `evals/benchmarks.json` were measured against
-  the previous AiKA backend and are pending re-measurement on `gemini-2.5-flash`.
+  the previous AiKA backend and are pending re-measurement on `gemini-3.8-flash`.
 
 ## Evals
 

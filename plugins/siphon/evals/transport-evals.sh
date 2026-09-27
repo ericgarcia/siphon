@@ -19,6 +19,12 @@ CAPTURED_ARGS="$WORKDIR/captured-args"
 # A key must exist for siphon_api_key to succeed, but it must never reach argv.
 export GEMINI_API_KEY="test-key-do-not-use"
 
+# The default-model check reads the library's own default, so an inherited
+# SIPHON_MODEL silently retargets it: anyone who had pinned a model in their
+# host settings saw "default-model-used" fail against their own override rather
+# than against the shipped default. The per-mode overrides are set per case.
+unset SIPHON_MODEL SIPHON_BULK_READER_MODEL SIPHON_CODE_WRITER_MODEL
+
 # shellcheck source=../scripts/lib/gemini.sh
 . "$PLUGIN_DIR/scripts/lib/gemini.sh"
 
@@ -80,7 +86,7 @@ check "thinking-disabled-by-default" "0" "$(body_field '.generationConfig.thinki
 check "no-history-sent" "1" "$(body_field '.contents | length')" \
   "every delegation is one shot"
 
-check "default-model-used" "gemini-2.5-flash" "$(cat "$CAPTURED_MODEL")" \
+check "default-model-used" "gemini-3.8-flash" "$(cat "$CAPTURED_MODEL")" \
   "the documented default model"
 
 # ── Security ──

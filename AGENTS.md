@@ -28,6 +28,13 @@ It began as a fork of `spotify/portal-ai-plugins`; see `NOTICE`.
 - The plugin identifier is `siphon`, producing `/siphon:<skill>` in Claude Code. It
   is identical across four plugin manifests and three marketplace entries —
   changing it means changing seven files.
+- The default model name is spelled out in **16 places across 11 files** — the
+  default in `scripts/lib/gemini.sh`, its eval assertion in
+  `evals/transport-evals.sh`, three host manifests, `evals/benchmarks.json`, both
+  skills' probes, and all three READMEs including `README.fr.md`. Google retires
+  Flash models, so this name will move again: grep for the current one and change
+  every hit in one commit. `transport-evals.sh` asserts the literal, so the suite
+  fails if the default and its documentation drift apart — that is deliberate.
 - Keep `doctor` read-only, and keep it off `generateContent`: diagnosis must not
   spend tokens.
 - Keep each skill canonical in `plugins/siphon/skills/`.

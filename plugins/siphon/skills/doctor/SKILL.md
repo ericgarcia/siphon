@@ -49,7 +49,7 @@ The metadata probe only — no generation:
 ```bash
 curl -sS -o /dev/null -w '%{http_code}\n' \
   -H "x-goog-api-key: $GEMINI_API_KEY" \
-  "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-2.5-flash}"
+  "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-3.8-flash}"
 ```
 
 Interpret the status: `200` ready; **`400` means the key was rejected — an invalid key
