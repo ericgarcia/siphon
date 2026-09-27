@@ -61,15 +61,16 @@ Do not accept the key in conversation.
 
 One minimal generation. A metadata call would not do: a retired model still answers
 metadata with `200` and refuses to generate. Capped at one output token with thinking off,
-so this costs about three tokens.
+so this costs about three tokens. The key goes through a `curl --config` pipe rather than
+argv, where `ps` would expose it, as `scripts/lib/gemini.sh` does.
 
 ```bash
 key="${GEMINI_API_KEY:-$(head -n1 "$keyfile" 2>/dev/null)}"
-curl -sS -o /dev/null -w '%{http_code}\n' \
-  -H "x-goog-api-key: $key" \
-  -H 'Content-Type: application/json' -X POST \
-  -d '{"contents":[{"parts":[{"text":"x"}]}],"generationConfig":{"maxOutputTokens":1,"thinkingConfig":{"thinkingBudget":0}}}' \
-  "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-3.8-flash}:generateContent"
+printf 'header = "x-goog-api-key: %s"\n' "$(printf '%s' "$key" | tr -d '[:space:]')" \
+| curl -sS --config - -o /dev/null -w '%{http_code}\n' \
+    -H 'Content-Type: application/json' -X POST \
+    -d '{"contents":[{"parts":[{"text":"x"}]}],"generationConfig":{"maxOutputTokens":1,"thinkingConfig":{"thinkingBudget":0}}}' \
+    "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-3.8-flash}:generateContent"
 ```
 
 - `200` — key valid, model reachable **and able to answer**.
@@ -80,7 +81,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
   List what is actually available:
 
   ```bash
-  curl -sS -H "x-goog-api-key: $key" \
+  printf 'header = "x-goog-api-key: %s"\n' "$key" | curl -sS --config - \
     "https://generativelanguage.googleapis.com/v1beta/models" \
   | jq -r '.models[] | select(.supportedGenerationMethods[]? == "generateContent") | .name'
   ```

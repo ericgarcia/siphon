@@ -69,16 +69,18 @@ new users"` from `generateContent`. Probing metadata alone reports a dead model 
 which is the exact failure this section exists to catch.
 
 So: one minimal generation. A single output token with thinking off is the cheapest call
-that proves the model will answer, about three tokens. Resolve the key as in §4:
+that proves the model will answer, about three tokens. Resolve the key as in §4. The key
+travels through a `curl --config` pipe, never in argv where `ps` would expose it to any local
+user, matching `scripts/lib/gemini.sh` and the rule in `AGENTS.md`:
 
 ```bash
 keyfile="${GEMINI_API_KEY_FILE:-$HOME/.config/siphon/gemini.key}"
 key="${GEMINI_API_KEY:-$(head -n1 "$keyfile" 2>/dev/null)}"
-curl -sS -o /dev/null -w '%{http_code}\n' \
-  -H "x-goog-api-key: $key" \
-  -H 'Content-Type: application/json' -X POST \
-  -d '{"contents":[{"parts":[{"text":"x"}]}],"generationConfig":{"maxOutputTokens":1,"thinkingConfig":{"thinkingBudget":0}}}' \
-  "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-3.8-flash}:generateContent"
+printf 'header = "x-goog-api-key: %s"\n' "$(printf '%s' "$key" | tr -d '[:space:]')" \
+| curl -sS --config - -o /dev/null -w '%{http_code}\n' \
+    -H 'Content-Type: application/json' -X POST \
+    -d '{"contents":[{"parts":[{"text":"x"}]}],"generationConfig":{"maxOutputTokens":1,"thinkingConfig":{"thinkingBudget":0}}}' \
+    "https://generativelanguage.googleapis.com/v1beta/models/${SIPHON_MODEL:-gemini-3.8-flash}:generateContent"
 ```
 
 Interpret the status:
@@ -91,7 +93,7 @@ Interpret the status:
   which names the replacement, then list what is actually available:
 
   ```bash
-  curl -sS -H "x-goog-api-key: $key" \
+  printf 'header = "x-goog-api-key: %s"\n' "$key" | curl -sS --config - \
     "https://generativelanguage.googleapis.com/v1beta/models" \
   | jq -r '.models[] | select(.supportedGenerationMethods[]? == "generateContent") | .name'
   ```
