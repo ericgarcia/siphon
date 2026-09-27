@@ -1,6 +1,6 @@
 {
   "name": "siphon",
-  "version": "1.0.0",
+  "version": "1.0.1-fork.5",
   "description": "Siphons I/O-heavy work to the Google AI Studio (Gemini) API to save tokens. Hooks block large file reads and redirect to bulk-read/code-write scripts that call Gemini directly.",
   "author": {
     "name": "Benjamin Polge / JDN",
