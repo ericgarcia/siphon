@@ -189,6 +189,12 @@ siphon_transport() {
 
   # The key goes through a --config pipe: never in argv (visible to `ps`), never
   # in the query string (logged by every proxy), and never on disk.
+  #
+  # ${model} in the URL below must stay braced. Unbraced, zsh reads "$model:g..."
+  # as a history modifier and silently rewrites the URL: gemini-3.6-flash became
+  # "6-flashnerateContent", a 404 indistinguishable from a retired model. Keep
+  # this comment out of the curl invocation: a comment line ends a \-continued
+  # command, which leaves curl with no URL at all.
   printf 'header = "x-goog-api-key: %s"\n' "$key" | curl \
     --config - \
     --silent --show-error \
@@ -201,7 +207,7 @@ siphon_transport() {
     --retry "$SIPHON_RETRIES" \
     --output "$out_file" \
     --write-out '%{http_code}' \
-    "$SIPHON_API_BASE/models/$model:generateContent"
+    "$SIPHON_API_BASE/models/${model}:generateContent"
 }
 
 # Concatenates the non-thought text parts. Taking parts[0].text would silently
