@@ -77,6 +77,9 @@ printf 'header = "x-goog-api-key: %s"\n' "$(printf '%s' "$key" | tr -d '[:space:
 - `400` — **an invalid key returns 400, not 401.** Treat it as a bad key.
 - `403` — key restricted, the Generative Language API is not enabled, or the key header
   went out empty; re-check step 4 before replacing the key.
+- `402` — billing, not quota: prepayment credits depleted on a prepaid project. Top up at
+  <https://ai.studio/projects>. The body's `status` says `RESOURCE_EXHAUSTED`, same as a
+  `429`, so go by the HTTP code. The key itself is valid.
 - `404` — wrong model id, **or the model was retired**; the body names the replacement.
   List what is actually available:
 

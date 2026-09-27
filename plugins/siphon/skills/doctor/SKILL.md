@@ -62,11 +62,18 @@ Report which source supplied it, and the length. **Never the value.**
 
 ## 5. Connectivity and model
 
-**A metadata call is not enough, and using one is how this check has been wrong before.** A
-retired model still answers `GET /models/<id>` with `200` and refuses to generate: measured
-2026-09-23, `gemini-2.5-flash` returned `200` from metadata and `404 "no longer available to
-new users"` from `generateContent`. Probing metadata alone reports a dead model as ready,
-which is the exact failure this section exists to catch.
+**A metadata call is not enough, and using one is how this check has been wrong before.**
+`GET /models/<id>` returns `200` in at least two states where nothing can actually be
+generated. Both measured:
+
+| State | metadata | `generateContent` |
+|---|---|---|
+| retired model (`gemini-2.5-flash`, 2026-09-23) | `200` | `404` no longer available |
+| billing-dead key (prepay credits depleted, 2026-09-27) | `200` | `402` credits depleted |
+
+In the second case the key cannot serve **any** model, and metadata still says `200` for all
+of them. Probing metadata alone reports a dead backend as ready, which is the exact failure
+this section exists to catch.
 
 So: one minimal generation. A single output token with thinking off is the cheapest call
 that proves the model will answer, about three tokens. Resolve the key as in §4. The key
@@ -89,6 +96,12 @@ Interpret the status:
 - `400` — **an invalid key returns 400, not 401.** Treat it as a bad key.
 - `403` — restricted key, API not enabled, **or an empty key header, so re-check §4 before
   blaming the key**.
+- `402` — **billing, not quota.** On a prepaid project, "Your prepayment credits are
+  depleted": top up at <https://ai.studio/projects>, see
+  <https://ai.google.dev/gemini-api/docs/billing#prepay>. Note the body's `status` field says
+  `RESOURCE_EXHAUSTED`, the same string a `429` uses, so **read the HTTP code, not the
+  status**: the remedies are paying and waiting respectively. The key and the model are both
+  fine; nothing in §4 needs changing.
 - `404` — the model id is wrong **or retired**. Drop `-o /dev/null` and read the message,
   which names the replacement, then list what is actually available:
 
